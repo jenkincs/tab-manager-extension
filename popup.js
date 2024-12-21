@@ -113,8 +113,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function filterSessions(searchText) {
     chrome.storage.local.get(['savedSessions'], function(result) {
       const sessions = result.savedSessions || [];
+      
+      // 先按时间排序
+      sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
       let filteredSessions;
-
       if (searchText) {
         filteredSessions = sessions.filter(session => {
           // 搜索session名称

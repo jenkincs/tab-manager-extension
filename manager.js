@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', function() {
 function loadSessions() {
     chrome.storage.local.get(['savedSessions'], function(result) {
         const sessions = result.savedSessions || [];
+        
+        // 按创建时间从新到旧排序
+        sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
         displaySessions(sessions);
     });
 }
