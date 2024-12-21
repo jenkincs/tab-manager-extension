@@ -6,12 +6,19 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Session Manager</h1>
-            <button id="back-to-popup" class="back-button">Back to Tab Manager</button>
-        </div>
-        <div class="sessions-container">
-            <!-- Sessions will be loaded here -->
+        <div class="container">
+            <div class="header">
+                <h1>Session Manager</h1>
+                <button id="back-to-popup" class="btn-primary">Back to Tab Manager</button>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search sessions or tabs...">
+            </div>
+
+            <div class="sessions-container">
+                <!-- Sessions will be loaded here -->
+            </div>
         </div>
     </div>
     <script src="manager.js"></script>

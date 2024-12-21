@@ -5,6 +5,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('back-to-popup').addEventListener('click', function() {
         window.close();
     });
+
+    // 搜索功能
+    document.getElementById('search-input').addEventListener('input', function(e) {
+        const searchText = e.target.value.toLowerCase().trim();
+        filterSessions(searchText);
+    });
 });
 
 // 加载会话列表
@@ -16,6 +22,35 @@ function loadSessions() {
         sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
         
         displaySessions(sessions);
+    });
+}
+
+// 过滤会话列表
+function filterSessions(searchText) {
+    chrome.storage.local.get(['savedSessions'], function(result) {
+        const sessions = result.savedSessions || [];
+        
+        // 按创建时间从新到旧排序
+        sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (!searchText) {
+            displaySessions(sessions);
+            return;
+        }
+
+        // 过滤会话
+        const filteredSessions = sessions.filter(session => {
+            // 搜索会话名称
+            if (session.name.toLowerCase().includes(searchText)) {
+                return true;
+            }
+            // 搜索标签页标题
+            return session.tabs.some(tab => 
+                tab.title.toLowerCase().includes(searchText)
+            );
+        });
+
+        displaySessions(filteredSessions);
     });
 }
 
