@@ -75,22 +75,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  function saveCurrentSession(name) {
-    chrome.tabs.query({}, function(tabs) {
-      const session = {
-        name,
-        date: new Date().toISOString(),
-        tabs: tabs.map(tab => ({
-          url: tab.url,
-          title: tab.title
-        }))
-      };
-
+  function saveCurrentSession(sessionName) {
+    chrome.tabs.query({ currentWindow: true }, function(tabs) {
       chrome.storage.local.get(['savedSessions'], function(result) {
-        const sessions = result.savedSessions || [];
-        sessions.push(session);
-        chrome.storage.local.set({ savedSessions: sessions }, function() {
-          displaySavedSessions(sessions);
+        const savedSessions = result.savedSessions || [];
+        
+        // 确保保存完整的tab信息，包括favIconUrl
+        const sessionTabs = tabs.map(tab => ({
+          title: tab.title,
+          url: tab.url,
+          favIconUrl: tab.favIconUrl || `chrome://favicon/${tab.url}`
+        }));
+
+        const session = {
+          name: sessionName,
+          date: new Date().toISOString(),
+          tabs: sessionTabs
+        };
+
+        savedSessions.unshift(session);
+        
+        chrome.storage.local.set({ 
+          savedSessions: savedSessions 
+        }, function() {
+          displaySavedSessions(savedSessions);
         });
       });
     });
