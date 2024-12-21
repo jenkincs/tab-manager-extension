@@ -83,15 +83,21 @@ function displaySessions(sessions) {
         const date = new Date(session.date);
         const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
         
+        // 创建会话名称元素
+        const sessionName = document.createElement('h3');
+        sessionName.className = 'session-name';
+        sessionName.textContent = session.name;
+        sessionName.addEventListener('click', () => editSessionName(sessionIndex));
+        
         sessionElement.innerHTML = `
             <div class="session-header">
                 <div class="session-info">
-                    <h3 class="session-name">${session.name}</h3>
+                    <div class="session-name-container"></div>
                     <div class="session-date">${formattedDate}</div>
                 </div>
                 <div class="session-actions">
-                    <button class="btn-primary" onclick="restoreSession(${sessionIndex})">Restore</button>
-                    <button class="btn-danger" onclick="deleteSession(${sessionIndex})">Delete Session</button>
+                    <button class="btn-primary">Restore</button>
+                    <button class="btn-danger">Delete Session</button>
                 </div>
             </div>
             <div class="tab-list">
@@ -99,13 +105,17 @@ function displaySessions(sessions) {
                     <div class="tab-item">
                         <img class="tab-favicon" src="${tab.favIconUrl || 'icons/icon16.png'}" onerror="this.src='icons/icon16.png'">
                         <span class="tab-title" title="${tab.title}">${tab.title}</span>
-                        <button class="delete-tab" onclick="deleteTab(${sessionIndex}, ${tabIndex})" title="Delete tab">&times;</button>
+                        <button class="delete-tab" title="Delete tab">&times;</button>
                     </div>
                 `).join('')}
             </div>
         `;
-        
-        // 添加事件监听器
+
+        // 插入会话名称
+        const nameContainer = sessionElement.querySelector('.session-name-container');
+        nameContainer.appendChild(sessionName);
+
+        // 添加按钮事件监听器
         const restoreBtn = sessionElement.querySelector('.btn-primary');
         const deleteSessionBtn = sessionElement.querySelector('.btn-danger');
         const deleteTabBtns = sessionElement.querySelectorAll('.delete-tab');
@@ -113,10 +123,74 @@ function displaySessions(sessions) {
         restoreBtn.addEventListener('click', () => restoreSession(sessionIndex));
         deleteSessionBtn.addEventListener('click', () => deleteSession(sessionIndex));
         deleteTabBtns.forEach((btn, tabIndex) => {
-            btn.addEventListener('click', () => deleteTab(sessionIndex, tabIndex));
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteTab(sessionIndex, tabIndex);
+            });
         });
 
         container.appendChild(sessionElement);
+    });
+}
+
+// 编辑会话名称
+function editSessionName(sessionIndex) {
+    const sessionNameElement = document.querySelectorAll('.session-name')[sessionIndex];
+    const currentName = sessionNameElement.textContent;
+    
+    // 如果已经在编辑状态，不要重复创建输入框
+    if (sessionNameElement.querySelector('input')) {
+        return;
+    }
+    
+    // 创建输入框
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentName;
+    input.className = 'session-name-input';
+    input.style.width = Math.max(100, sessionNameElement.offsetWidth) + 'px';
+    
+    // 替换标题为输入框
+    sessionNameElement.textContent = '';
+    sessionNameElement.appendChild(input);
+    input.focus();
+    
+    // 选中所有文本
+    input.select();
+    
+    // 处理输入完成
+    function handleComplete() {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+            // 更新存储
+            chrome.storage.local.get(['savedSessions'], function(result) {
+                const sessions = result.savedSessions || [];
+                if (sessions[sessionIndex]) {
+                    sessions[sessionIndex].name = newName;
+                    chrome.storage.local.set({ savedSessions: sessions }, function() {
+                        // 更新显示
+                        sessionNameElement.textContent = newName;
+                    });
+                }
+            });
+        } else {
+            // 恢复原名称
+            sessionNameElement.textContent = currentName;
+        }
+    }
+    
+    // 添加事件监听器
+    input.addEventListener('blur', handleComplete);
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleComplete();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            sessionNameElement.textContent = currentName;
+            input.blur();
+        }
     });
 }
 
@@ -214,6 +288,7 @@ function restoreSession(sessionIndex) {
 window.deleteTab = deleteTab;
 window.deleteSession = deleteSession;
 window.restoreSession = restoreSession;
+window.editSessionName = editSessionName;
 window.backToTabManager = function() {
     window.close();
 };
