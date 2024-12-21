@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tab Manager</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tab Manager</h1>
+      <button id="close-popup" class="close-popup" title="Close Tab Manager">×</button>
+    </div>
+    <input type="text" id="search-tabs" placeholder="Search tabs...">
+    <div id="tab-list"></div>
+    <div class="actions">
+      <button id="close-all-tabs">Close All Tabs</button>
+      <button id="close-others">Close Other Tabs</button>
+      <button id="save-session">Save Session</button>
+    </div>
+    <div class="sessions-section">
+      <div class="sessions-header">
+        <h2>Saved Sessions</h2>
+        <input type="text" id="search-sessions" placeholder="Search sessions...">
+      </div>
+      <div class="sessions-container">
+        <div id="saved-sessions"></div>
+      </div>
+    </div>
+    <div class="manage-section">
+      <button id="open-manager" class="btn-secondary">Manage Sessions</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

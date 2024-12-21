@@ -1,0 +1,147 @@
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.back-button {
+    padding: 8px 16px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    background: #1976D2;
+}
+
+.sessions-container {
+    padding: 20px;
+}
+
+.session-item {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    padding: 16px;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.session-info {
+    flex: 1;
+}
+
+.session-name {
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+}
+
+.session-date {
+    font-size: 14px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.session-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.tab-list {
+    margin-top: 12px;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
+}
+
+.tab-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.tab-favicon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+}
+
+.tab-title {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #2196F3;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1976D2;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #d32f2f;
+}
+
+.delete-tab {
+    padding: 4px 8px;
+    background: none;
+    color: #666;
+    margin-left: 8px;
+}
+
+.delete-tab:hover {
+    background: #ffebee;
+    color: #f44336;
+}
