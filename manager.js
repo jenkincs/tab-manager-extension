@@ -18,6 +18,17 @@ function loadSessions() {
     chrome.storage.local.get(['savedSessions'], function(result) {
         const sessions = result.savedSessions || [];
         
+        // 调试日志
+        console.log('All sessions:', sessions);
+        sessions.forEach((session, index) => {
+            console.log(`Session ${index}:`, {
+                name: session.name,
+                date: session.date,
+                tabCount: session.tabs.length,
+                tabs: session.tabs
+            });
+        });
+        
         // 按创建时间从新到旧排序
         sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
         
@@ -152,21 +163,49 @@ function restoreSession(sessionIndex) {
         const sessions = result.savedSessions || [];
         const session = sessions[sessionIndex];
         
+        if (!session || !session.tabs || session.tabs.length === 0) {
+            console.error('No tabs to restore');
+            return;
+        }
+
+        console.log('Restoring session:', session);
+        console.log('Number of tabs:', session.tabs.length);
+        session.tabs.forEach((tab, index) => {
+            console.log(`Tab ${index}:`, tab.url);
+        });
+
         // 创建一个新的窗口来恢复所有标签
-        chrome.windows.create({ focused: true }, function(newWindow) {
-            // 恢复所有标签
-            session.tabs.forEach((tab, index) => {
-                // 第一个标签更新现有标签，其他的创建新标签
-                if (index === 0) {
-                    chrome.tabs.update(newWindow.tabs[0].id, { url: tab.url });
-                } else {
-                    chrome.tabs.create({
-                        windowId: newWindow.id,
-                        url: tab.url,
-                        active: false
+        chrome.windows.create({ focused: true }, async function(newWindow) {
+            try {
+                // 更新第一个标签页
+                await new Promise((resolve) => {
+                    chrome.tabs.update(newWindow.tabs[0].id, { 
+                        url: session.tabs[0].url,
+                        active: true
+                    }, () => {
+                        console.log('First tab updated');
+                        resolve();
+                    });
+                });
+
+                // 创建其余的标签页
+                for (let i = 1; i < session.tabs.length; i++) {
+                    await new Promise((resolve) => {
+                        chrome.tabs.create({
+                            windowId: newWindow.id,
+                            url: session.tabs[i].url,
+                            active: false,
+                            index: i
+                        }, (tab) => {
+                            console.log(`Created tab ${i}:`, tab.url);
+                            resolve();
+                        });
                     });
                 }
-            });
+                console.log('All tabs restored');
+            } catch (error) {
+                console.error('Error restoring session:', error);
+            }
         });
     });
 }

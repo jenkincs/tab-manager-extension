@@ -77,15 +77,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function saveCurrentSession(sessionName) {
     chrome.tabs.query({ currentWindow: true }, function(tabs) {
+      console.log('Saving tabs:', tabs); // 调试日志
       chrome.storage.local.get(['savedSessions'], function(result) {
         const savedSessions = result.savedSessions || [];
         
         // 确保保存完整的tab信息，包括favIconUrl
-        const sessionTabs = tabs.map(tab => ({
-          title: tab.title,
-          url: tab.url,
-          favIconUrl: tab.favIconUrl || `chrome://favicon/${tab.url}`
-        }));
+        const sessionTabs = tabs.map(tab => {
+          console.log('Processing tab:', tab); // 调试日志
+          return {
+            title: tab.title,
+            url: tab.url,
+            favIconUrl: tab.favIconUrl || `chrome://favicon/${tab.url}`
+          };
+        });
+
+        console.log('Processed tabs:', sessionTabs); // 调试日志
 
         const session = {
           name: sessionName,
@@ -93,11 +99,14 @@ document.addEventListener('DOMContentLoaded', function() {
           tabs: sessionTabs
         };
 
+        console.log('New session:', session); // 调试日志
+
         savedSessions.unshift(session);
         
         chrome.storage.local.set({ 
           savedSessions: savedSessions 
         }, function() {
+          console.log('Session saved successfully'); // 调试日志
           displaySavedSessions(savedSessions);
         });
       });
