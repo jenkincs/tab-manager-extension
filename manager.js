@@ -102,7 +102,7 @@ function displaySessions(sessions) {
             </div>
             <div class="tab-list">
                 ${session.tabs.map((tab, tabIndex) => `
-                    <div class="tab-item">
+                    <div class="tab-item" style="cursor: pointer;">
                         <img class="tab-favicon" src="${tab.favIconUrl || 'icons/icon16.png'}" onerror="this.src='icons/icon16.png'">
                         <span class="tab-title" title="${tab.title}">${tab.title}</span>
                         <button class="delete-tab" title="Delete tab">&times;</button>
@@ -119,9 +119,26 @@ function displaySessions(sessions) {
         const restoreBtn = sessionElement.querySelector('.btn-primary');
         const deleteSessionBtn = sessionElement.querySelector('.btn-danger');
         const deleteTabBtns = sessionElement.querySelectorAll('.delete-tab');
+        const tabItems = sessionElement.querySelectorAll('.tab-item');
 
         restoreBtn.addEventListener('click', () => restoreSession(sessionIndex));
         deleteSessionBtn.addEventListener('click', () => deleteSession(sessionIndex));
+        
+        // 为每个标签项添加点击事件
+        tabItems.forEach((tabItem, tabIndex) => {
+            tabItem.addEventListener('click', (e) => {
+                // 如果点击的是删除按钮，不打开标签页
+                if (e.target.classList.contains('delete-tab')) {
+                    e.stopPropagation();
+                    deleteTab(sessionIndex, tabIndex);
+                    return;
+                }
+                // 在当前窗口最右侧打开标签页
+                openTabInCurrentWindow(session.tabs[tabIndex].url);
+            });
+        });
+
+        // 为删除按钮添加事件监听器
         deleteTabBtns.forEach((btn, tabIndex) => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -130,6 +147,19 @@ function displaySessions(sessions) {
         });
 
         container.appendChild(sessionElement);
+    });
+}
+
+// 在当前窗口打开标签页
+function openTabInCurrentWindow(url) {
+    chrome.windows.getCurrent(function(currentWindow) {
+        chrome.tabs.query({ windowId: currentWindow.id }, function(tabs) {
+            chrome.tabs.create({
+                url: url,
+                active: false,
+                index: tabs.length  // 在最右侧打开
+            });
+        });
     });
 }
 
@@ -242,44 +272,19 @@ function restoreSession(sessionIndex) {
             return;
         }
 
-        console.log('Restoring session:', session);
-        console.log('Number of tabs:', session.tabs.length);
-        session.tabs.forEach((tab, index) => {
-            console.log(`Tab ${index}:`, tab.url);
-        });
-
-        // 创建一个新的窗口来恢复所有标签
-        chrome.windows.create({ focused: true }, async function(newWindow) {
-            try {
-                // 更新第一个标签页
-                await new Promise((resolve) => {
-                    chrome.tabs.update(newWindow.tabs[0].id, { 
-                        url: session.tabs[0].url,
-                        active: true
-                    }, () => {
-                        console.log('First tab updated');
-                        resolve();
+        // 获取当前窗口
+        chrome.windows.getCurrent(function(currentWindow) {
+            // 获取当前窗口中的所有标签页
+            chrome.tabs.query({ windowId: currentWindow.id }, function(tabs) {
+                // 创建所有标签页
+                session.tabs.forEach((tab, index) => {
+                    chrome.tabs.create({
+                        url: tab.url,
+                        active: index === 0, // 只激活第一个标签页
+                        index: tabs.length + index // 在现有标签页之后添加
                     });
                 });
-
-                // 创建其余的标签页
-                for (let i = 1; i < session.tabs.length; i++) {
-                    await new Promise((resolve) => {
-                        chrome.tabs.create({
-                            windowId: newWindow.id,
-                            url: session.tabs[i].url,
-                            active: false,
-                            index: i
-                        }, (tab) => {
-                            console.log(`Created tab ${i}:`, tab.url);
-                            resolve();
-                        });
-                    });
-                }
-                console.log('All tabs restored');
-            } catch (error) {
-                console.error('Error restoring session:', error);
-            }
+            });
         });
     });
 }
