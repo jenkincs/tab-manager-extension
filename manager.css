@@ -73,7 +73,7 @@ body {
 .session-name {
     cursor: pointer;
     margin: 0;
-    padding: 4px 8px;
+    padding: 4px 0px;
     font-size: 18px;
     font-weight: 500;
     color: #333;
