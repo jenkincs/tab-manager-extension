@@ -8,74 +8,99 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 搜索功能
     document.getElementById('search-input').addEventListener('input', function(e) {
-        const searchText = e.target.value.toLowerCase().trim();
+        const searchText = e.target.value.trim();
         filterSessions(searchText);
+    });
+
+    // 添加分页事件监听器
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            loadSessions();
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            loadSessions();
+        }
     });
 });
 
-// 加载会话列表
+// 分页配置
+const ITEMS_PER_PAGE = 5; // 每页显示的会话数
+let currentPage = 1;
+let totalPages = 1;
+let currentSearchText = ''; // 保存当前搜索文本
+
+// 加载会话
 function loadSessions() {
     chrome.storage.local.get(['savedSessions'], function(result) {
         const sessions = result.savedSessions || [];
-        
-        // 调试日志
-        console.log('All sessions:', sessions);
-        sessions.forEach((session, index) => {
-            console.log(`Session ${index}:`, {
-                name: session.name,
-                date: session.date,
-                tabCount: session.tabs.length,
-                tabs: session.tabs
-            });
-        });
-        
-        // 按创建时间从新到旧排序
-        sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        displaySessions(sessions);
+        displayFilteredSessions(sessions, currentSearchText);
     });
 }
 
-// 过滤会话列表
-function filterSessions(searchText) {
-    chrome.storage.local.get(['savedSessions'], function(result) {
-        const sessions = result.savedSessions || [];
-        
-        // 按创建时间从新到旧排序
-        sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        if (!searchText) {
-            displaySessions(sessions);
-            return;
-        }
-
-        // 过滤会话
-        const filteredSessions = sessions.filter(session => {
-            // 搜索会话名称
-            if (session.name.toLowerCase().includes(searchText)) {
-                return true;
-            }
-            // 搜索标签页标题
-            return session.tabs.some(tab => 
-                tab.title.toLowerCase().includes(searchText)
-            );
-        });
-
-        displaySessions(filteredSessions);
-    });
-}
-
-// 显示会话列表
-function displaySessions(sessions) {
-    const container = document.querySelector('.sessions-container');
-    container.innerHTML = '';
-    
-    if (sessions.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666;">No saved sessions found.</p>';
-        return;
+// 更新分页控件状态
+function updatePagination(filteredLength) {
+    totalPages = Math.ceil(filteredLength / ITEMS_PER_PAGE);
+    // 如果当前页超过总页数，重置为第一页
+    if (currentPage > totalPages) {
+        currentPage = 1;
     }
     
-    sessions.forEach((session, sessionIndex) => {
+    document.getElementById('currentPage').textContent = currentPage;
+    document.getElementById('totalPages').textContent = totalPages;
+    
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+    
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = currentPage === totalPages;
+
+    // 如果没有结果，隐藏分页
+    const pagination = document.querySelector('.pagination');
+    pagination.style.display = filteredLength === 0 ? 'none' : 'flex';
+}
+
+// 过滤和显示会话
+function displayFilteredSessions(sessions, searchText) {
+    const container = document.querySelector('.sessions-container');
+    container.innerHTML = '';
+
+    // 按创建时间从新到旧排序
+    sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // 过滤会话
+    const filteredSessions = sessions.filter(session => {
+        const sessionText = session.name.toLowerCase();
+        const tabTitles = session.tabs.map(tab => tab.title.toLowerCase());
+        const searchLower = searchText.toLowerCase();
+        
+        return sessionText.includes(searchLower) || 
+               tabTitles.some(title => title.includes(searchLower));
+    });
+
+    if (filteredSessions.length === 0) {
+        container.innerHTML = searchText 
+            ? '<p style="text-align: center; color: #666;">No matching sessions found.</p>'
+            : '<p style="text-align: center; color: #666;">No saved sessions found.</p>';
+        updatePagination(0);
+        return;
+    }
+
+    // 更新分页状态
+    updatePagination(filteredSessions.length);
+    
+    // 计算当前页的起始和结束索引
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredSessions.length);
+    const currentPageSessions = filteredSessions.slice(startIndex, endIndex);
+    
+    // 显示当前页的会话
+    currentPageSessions.forEach((session, index) => {
+        const actualIndex = sessions.indexOf(session); // 使用原始数组中的索引
         const sessionElement = document.createElement('div');
         sessionElement.className = 'session-item';
         
@@ -87,7 +112,7 @@ function displaySessions(sessions) {
         const sessionName = document.createElement('h3');
         sessionName.className = 'session-name';
         sessionName.textContent = session.name;
-        sessionName.addEventListener('click', () => editSessionName(sessionIndex));
+        sessionName.addEventListener('click', () => editSessionName(actualIndex));
         
         sessionElement.innerHTML = `
             <div class="session-header">
@@ -121,19 +146,17 @@ function displaySessions(sessions) {
         const deleteTabBtns = sessionElement.querySelectorAll('.delete-tab');
         const tabItems = sessionElement.querySelectorAll('.tab-item');
 
-        restoreBtn.addEventListener('click', () => restoreSession(sessionIndex));
-        deleteSessionBtn.addEventListener('click', () => deleteSession(sessionIndex));
+        restoreBtn.addEventListener('click', () => restoreSession(actualIndex));
+        deleteSessionBtn.addEventListener('click', () => deleteSession(actualIndex));
         
         // 为每个标签项添加点击事件
         tabItems.forEach((tabItem, tabIndex) => {
             tabItem.addEventListener('click', (e) => {
-                // 如果点击的是删除按钮，不打开标签页
                 if (e.target.classList.contains('delete-tab')) {
                     e.stopPropagation();
-                    deleteTab(sessionIndex, tabIndex);
+                    deleteTab(actualIndex, tabIndex);
                     return;
                 }
-                // 在当前窗口最右侧打开标签页
                 openTabInCurrentWindow(session.tabs[tabIndex].url);
             });
         });
@@ -142,12 +165,19 @@ function displaySessions(sessions) {
         deleteTabBtns.forEach((btn, tabIndex) => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                deleteTab(sessionIndex, tabIndex);
+                deleteTab(actualIndex, tabIndex);
             });
         });
 
         container.appendChild(sessionElement);
     });
+}
+
+// 搜索功能
+function filterSessions(searchText) {
+    currentSearchText = searchText; // 保存搜索文本
+    currentPage = 1; // 重置到第一页
+    loadSessions();
 }
 
 // 在当前窗口打开标签页
