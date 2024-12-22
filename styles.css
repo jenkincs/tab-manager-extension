@@ -371,3 +371,27 @@ button {
 .btn-secondary:hover {
   background: #e0e0e0;
 }
+
+#tab-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 12px 0;
+}
+
+#tab-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#tab-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+#tab-list::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+#tab-list::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}
