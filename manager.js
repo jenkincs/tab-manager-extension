@@ -26,6 +26,120 @@ document.addEventListener('DOMContentLoaded', function() {
             loadSessions();
         }
     });
+
+    // 导出功能
+    document.getElementById('exportSessions').addEventListener('click', async () => {
+        try {
+            // 获取所有会话数据
+            const sessions = await new Promise((resolve) => {
+                chrome.storage.local.get(['savedSessions'], (result) => {
+                    resolve(result.savedSessions || []);
+                });
+            });
+
+            // 创建 Blob 对象
+            const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: 'application/json' });
+            
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tab-manager-sessions-${new Date().toISOString().split('T')[0]}.json`;
+            
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export sessions. Please try again.');
+        }
+    });
+
+    // 导入功能
+    document.getElementById('importSessions').addEventListener('click', () => {
+        document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', async (event) => {
+        try {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedSessions = JSON.parse(e.target.result);
+                    
+                    // 验证数据格式
+                    if (!Array.isArray(importedSessions)) {
+                        throw new Error('Invalid data format');
+                    }
+
+                    // 获取现有会话
+                    const existingSessions = await new Promise((resolve) => {
+                        chrome.storage.local.get(['savedSessions'], (result) => {
+                            resolve(result.savedSessions || []);
+                        });
+                    });
+
+                    // 合并会话，避免重复
+                    const mergedSessions = [...existingSessions];
+                    for (const importedSession of importedSessions) {
+                        // 检查是否已存在相同名称的会话
+                        const existingIndex = mergedSessions.findIndex(
+                            session => session.name === importedSession.name
+                        );
+
+                        if (existingIndex === -1) {
+                            // 如果不存在，直接添加
+                            mergedSessions.push(importedSession);
+                        } else {
+                            // 如果存在，在名称后添加编号
+                            let counter = 1;
+                            let newName = `${importedSession.name} (${counter})`;
+                            
+                            // 循环直到找到一个不重复的名称
+                            while (mergedSessions.some(session => session.name === newName)) {
+                                counter++;
+                                newName = `${importedSession.name} (${counter})`;
+                            }
+                            
+                            importedSession.name = newName;
+                            mergedSessions.push(importedSession);
+                        }
+                    }
+
+                    // 保存合并后的会话
+                    await new Promise((resolve, reject) => {
+                        chrome.storage.local.set({ savedSessions: mergedSessions }, () => {
+                            if (chrome.runtime.lastError) {
+                                reject(chrome.runtime.lastError);
+                            } else {
+                                resolve();
+                            }
+                        });
+                    });
+
+                    // 刷新显示
+                    await loadSessions();
+                    alert(`Successfully imported ${importedSessions.length} sessions!`);
+                } catch (error) {
+                    console.error('Import failed:', error);
+                    alert('Failed to import sessions. Please check the file format.');
+                }
+            };
+            reader.readAsText(file);
+        } catch (error) {
+            console.error('Import failed:', error);
+            alert('Failed to import sessions. Please try again.');
+        }
+        // 清理 input
+        event.target.value = '';
+    });
 });
 
 // 分页配置
